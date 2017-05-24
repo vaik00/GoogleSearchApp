@@ -24,9 +24,14 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends BaseActivity implements MainView {
     public static final String TAG = "SEARCH_ACTIVITY";
+    public static final String SAVED_QUERY = "app.dev.googlesearchapp.saved_query";
 
-    @Bind(R.id.search_view) SearchView searchView;
-    @Bind(R.id.pager) ViewPager viewPager;
+    @Bind(R.id.search_view)
+    SearchView searchView;
+    @Bind(R.id.pager)
+    ViewPager viewPager;
+
+    private String mQuery;
 
     @OnPageChange(R.id.pager)
     void onPageSelected(int position) {
@@ -43,6 +48,19 @@ public class MainActivity extends BaseActivity implements MainView {
         ButterKnife.bind(this);
         loadUI();
         loadSearchView();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        // Save the user's current query state
+        savedInstanceState.putString(SAVED_QUERY, mQuery);
+        super.onSaveInstanceState(savedInstanceState);
+    }
+
+    public void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        // Restore state members from saved instance
+        mQuery = savedInstanceState.getString(SAVED_QUERY);
     }
 
     @Override
@@ -63,11 +81,13 @@ public class MainActivity extends BaseActivity implements MainView {
 
     @Override
     public void loadSearchView() {
-       RxSearch.fromSearchView(searchView)
+        RxSearch.fromSearchView(searchView)
                 .debounce(300, TimeUnit.MILLISECONDS)
                 .filter(item -> item.length() >= 1)
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(query -> {adapter.refreshTab(tabPositionSelected, query);
+                .subscribe(query -> {
+                    mQuery = query;
+                    adapter.refreshTab(tabPositionSelected, query);
                 }, error -> Log.e(TAG, error.getMessage()));
     }
 

@@ -7,10 +7,13 @@ import android.database.sqlite.SQLiteOpenHelper;
 /**
  * Created by vaik00 on 22.05.2017.
  */
+ public class DBHelper extends SQLiteOpenHelper {
+    public static final String TABLE_NAME = "Favourite";
+    public static final String COLUMN_ID = "id";
+    public static final String COLUMN_NAME = "name";
+    public static final String COLUMN_PHOTO = "photo_path";
 
-public class DBHelper extends SQLiteOpenHelper {
-
-    public DBHelper(Context context) {
+    DBHelper(Context context) {
 
         super(context, "SearchDB", null, 1);
     }
@@ -22,8 +25,8 @@ public class DBHelper extends SQLiteOpenHelper {
     }
 
     private void createTable(SQLiteDatabase db) {
-        db.execSQL("create table Favorite ("
-                + "id integer primary key autoincrement, name text, photo_path text );");
+        db.execSQL("create table " + TABLE_NAME + " ("
+                + COLUMN_ID + " integer primary key autoincrement, " + COLUMN_NAME + " text, " + COLUMN_PHOTO + " text );");
     }
 
 

@@ -1,6 +1,6 @@
 package app.dev.googlesearchapp.model.loader;
 
-import android.content.AsyncTaskLoader;
+import android.support.v4.content.AsyncTaskLoader;
 import android.content.Context;
 
 import app.dev.googlesearchapp.model.api.ApiInterface;

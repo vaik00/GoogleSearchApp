@@ -1,11 +1,8 @@
 package app.dev.googlesearchapp.view.fragment;
 
-import android.Manifest;
 import android.content.Intent;
-import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
@@ -13,6 +10,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,7 +19,8 @@ import java.util.List;
 
 import app.dev.googlesearchapp.R;
 import app.dev.googlesearchapp.model.data.QueryData;
-import app.dev.googlesearchapp.model.db.DBMethods;
+import app.dev.googlesearchapp.model.db.QueryType;
+import app.dev.googlesearchapp.model.db.TaskListener;
 import app.dev.googlesearchapp.presenter.FavouritePresenter;
 import app.dev.googlesearchapp.utils.Constants;
 import app.dev.googlesearchapp.view.SnackbarHelper;
@@ -30,35 +29,14 @@ import app.dev.googlesearchapp.view.adapter.EndlessRecyclerViewScrollListener;
 import app.dev.googlesearchapp.view.adapter.FavouriteAdapter;
 import butterknife.Bind;
 import butterknife.ButterKnife;
-import permissions.dispatcher.NeedsPermission;
-import permissions.dispatcher.RuntimePermissions;
 
 /**
  * Created by vaik00 on 22.05.2017.
  */
 
-@RuntimePermissions
-public class FavouriteFragment extends Fragment  implements FavouriteView{
-    @Bind(R.id.result_recycler) RecyclerView resultRecycler;
-
-    @NeedsPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-    void writeExternalStoragePermission(int id, int position, String imageName){
-        if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        mPresenter.deleteFromDb(id, position, imageName);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        // NOTE: delegate the permission handling to generated method
-        FavouriteFragmentPermissionsDispatcher
-                .onRequestPermissionsResult(
-                        this,
-                        requestCode,
-                        grantResults);
-    }
+public class FavouriteFragment extends Fragment implements FavouriteView, TaskListener {
+    @Bind(R.id.result_recycler)
+    RecyclerView resultRecycler;
 
     private FavouritePresenter mPresenter;
     private FavouriteAdapter mAdapter;
@@ -71,8 +49,7 @@ public class FavouriteFragment extends Fragment  implements FavouriteView{
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_result, container, false);
-        DBMethods db = new DBMethods(getActivity());
-        mPresenter = new FavouritePresenter(this, db);
+        mPresenter = new FavouritePresenter(this, getContext(), this);
         loadUI(v);
         loadData(1);
         return v;
@@ -107,12 +84,7 @@ public class FavouriteFragment extends Fragment  implements FavouriteView{
 
             @Override
             public void deleteFromDB(int id, int position, String imageName) {
-                FavouriteFragmentPermissionsDispatcher
-                        .writeExternalStoragePermissionWithCheck(
-                                FavouriteFragment.this,
-                                id,
-                                position,
-                                imageName);
+                mPresenter.deleteFromDb(id, position, imageName);
             }
         });
     }
@@ -129,7 +101,7 @@ public class FavouriteFragment extends Fragment  implements FavouriteView{
 
     @Override
     public void loadData(int index) {
-        mPresenter.loadData(index);
+        mPresenter.loadData(index, true);
     }
 
     @Override
@@ -155,12 +127,25 @@ public class FavouriteFragment extends Fragment  implements FavouriteView{
 
     @Override
     public void update(String searchQuery) {
-        mPresenter.loadData(0);
+        mPresenter.loadData(0, false);
     }
 
 
     @Override
     public void showSuccessDeleteSnackbar() {
         SnackbarHelper.showErrorSnackbar(getActivity(), getResources().getString(R.string.delete_from_favorite));
+    }
+
+    @Override
+    public void onTaskCompleted(QueryType queryType, Object result) {
+        switch (queryType) {
+            case DELETE:
+                Log.d("DELETE", "REMOVED");
+                showSuccessDeleteSnackbar();
+                break;
+            case SELECT:
+                mPresenter.readData((Cursor) result);
+                break;
+        }
     }
 }

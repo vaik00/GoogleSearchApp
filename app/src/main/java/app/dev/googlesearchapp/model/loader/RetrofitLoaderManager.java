@@ -1,7 +1,7 @@
 package app.dev.googlesearchapp.model.loader;
 
-import android.app.LoaderManager;
-import android.content.Loader;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.Loader;
 import android.os.Bundle;
 
 /**
@@ -10,7 +10,7 @@ import android.os.Bundle;
 
 public class RetrofitLoaderManager {
     public static <D> void init(final LoaderManager manager, final int loaderId,
-                                   final RetrofitLoader<D> loader, final Callback<D> callback) {
+                                final RetrofitLoader<D> loader, final Callback<D> callback) {
 
         manager.initLoader(loaderId, Bundle.EMPTY, new LoaderManager.LoaderCallbacks<Response<D>>() {
             @Override
@@ -20,7 +20,6 @@ public class RetrofitLoaderManager {
 
             @Override
             public void onLoadFinished(Loader<Response<D>> loader, Response<D> data) {
-
                 if (data.hasError()) {
                     callback.onFailure(data.getException());
                 } else {
@@ -35,3 +34,4 @@ public class RetrofitLoaderManager {
         });
     }
 }
+

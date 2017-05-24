@@ -1,14 +1,10 @@
 package app.dev.googlesearchapp.view.fragment;
 
-import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
@@ -16,6 +12,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,7 +25,8 @@ import app.dev.googlesearchapp.R;
 import app.dev.googlesearchapp.model.ModelLoader;
 import app.dev.googlesearchapp.model.data.Query;
 import app.dev.googlesearchapp.model.data.QueryData;
-import app.dev.googlesearchapp.model.db.DBMethods;
+import app.dev.googlesearchapp.model.db.QueryType;
+import app.dev.googlesearchapp.model.db.TaskListener;
 import app.dev.googlesearchapp.model.loader.Callback;
 import app.dev.googlesearchapp.model.loader.RetrofitLoaderManager;
 import app.dev.googlesearchapp.presenter.ResultPresenter;
@@ -39,31 +37,13 @@ import app.dev.googlesearchapp.view.adapter.EndlessRecyclerViewScrollListener;
 import app.dev.googlesearchapp.view.adapter.ResultAdapter;
 import butterknife.Bind;
 import butterknife.ButterKnife;
-import permissions.dispatcher.NeedsPermission;
-import permissions.dispatcher.RuntimePermissions;
 
 /**
  * Created by vaik00 on 22.05.2017.
  */
-@RuntimePermissions
-public class ResultFragment extends Fragment implements Callback<Query>, ResultView {
-    @Bind(R.id.result_recycler) RecyclerView resultRecycler;
-
-    @NeedsPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-    void writeExternalStoragePermission(QueryData data){
-        if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        mPresenter.saveToDb(data, Picasso.with(getContext()));
-
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        // NOTE: delegate the permission handling to generated method
-        ResultFragmentPermissionsDispatcher.onRequestPermissionsResult(this, requestCode, grantResults);
-    }
+public class ResultFragment extends Fragment implements Callback<Query>, ResultView, TaskListener {
+    @Bind(R.id.result_recycler)
+    RecyclerView resultRecycler;
 
     private ResultPresenter mPresenter;
     private String mSearchQuery;
@@ -79,8 +59,7 @@ public class ResultFragment extends Fragment implements Callback<Query>, ResultV
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_result, container, false);
         ButterKnife.bind(this, v);
-        DBMethods db = new DBMethods(getActivity());
-        mPresenter = new ResultPresenter(this, db);
+        mPresenter = new ResultPresenter(this, getContext(), this);
         loadUI(v);
         return v;
 
@@ -134,7 +113,10 @@ public class ResultFragment extends Fragment implements Callback<Query>, ResultV
 
             @Override
             public void saveToDB(QueryData data) {
-                ResultFragmentPermissionsDispatcher.writeExternalStoragePermissionWithCheck(ResultFragment.this, data);
+                String imageName = Long.toString(System.currentTimeMillis()) + ".jpeg";
+                String src = data.getPagemap().getCseThumbnailData().get(0).getSrc();
+                mPresenter.saveToDb(data, imageName);
+                mPresenter.saveImage(src, imageName, Picasso.with(getContext()));
             }
 
             @Override
@@ -165,7 +147,7 @@ public class ResultFragment extends Fragment implements Callback<Query>, ResultV
     @Override
     public void loadData(String query, int index) {
         ModelLoader loader = new ModelLoader(getActivity(), query, index);
-        RetrofitLoaderManager.init(getActivity().getLoaderManager(), 0, loader, this);
+        RetrofitLoaderManager.init(getActivity().getSupportLoaderManager(), 0, loader, this);
     }
 
     @Override
@@ -198,5 +180,19 @@ public class ResultFragment extends Fragment implements Callback<Query>, ResultV
     @Override
     public void showSuccessDeleteSnackbar() {
         SnackbarHelper.showErrorSnackbar(getActivity(), getResources().getString(R.string.delete_from_favorite));
+    }
+
+    @Override
+    public void onTaskCompleted(QueryType queryType, Object result) {
+        switch (queryType) {
+            case INSERT:
+                Log.d("INSERT", "row ID of the newly inserted row = " + (Long) result + "");
+                showSuccessSaveSnackbar();
+                break;
+            case DELETE:
+                Log.d("DELETE", "REMOVED");
+                showSuccessDeleteSnackbar();
+                break;
+        }
     }
 }
