@@ -1,5 +1,7 @@
 package app.dev.googlesearchapp.view.adapter;
 
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -69,14 +71,31 @@ public class FavouriteAdapter extends RecyclerView.Adapter<FavouriteAdapter.Favo
     public void onBindViewHolder(FavouriteViewHolder holder, int position) {
         QueryData data = mQueryData.get(position);
         holder.textView.setText(data.getTitle());
-        Picasso
-                .with(holder.itemView.getContext())
-                .load(FileHelper.getFile(data.getImagePath()))
-                .placeholder(R.drawable.ic_placeholder)
-                .fit()
-                .centerCrop()
-                .into(holder.imageView);
+        if(checkWriteExternalPermission(holder.itemView.getContext())){
+            Picasso
+                    .with(holder.itemView.getContext())
+                    .load(FileHelper.getFile(data.getImagePath()))
+                    .placeholder(R.drawable.ic_placeholder)
+                    .fit()
+                    .centerCrop()
+                    .into(holder.imageView);
+        }else{
+            Picasso
+                    .with(holder.itemView.getContext())
+                    .load(data.getImagePath())
+                    .placeholder(R.drawable.ic_placeholder)
+                    .fit()
+                    .centerCrop()
+                    .into(holder.imageView);
+        }
+
         holder.checkBox.setChecked(data.isSelected());
+    }
+
+    private boolean checkWriteExternalPermission(Context context) {
+        String permission = "android.permission.WRITE_EXTERNAL_STORAGE";
+        int res = context.checkCallingOrSelfPermission(permission);
+        return (res == PackageManager.PERMISSION_GRANTED);
     }
 
     @Override

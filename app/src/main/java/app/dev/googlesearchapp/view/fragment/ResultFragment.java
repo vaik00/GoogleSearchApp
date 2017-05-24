@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -115,8 +116,12 @@ public class ResultFragment extends Fragment implements Callback<Query>, ResultV
             public void saveToDB(QueryData data) {
                 String imageName = Long.toString(System.currentTimeMillis()) + ".jpeg";
                 String src = data.getPagemap().getCseThumbnailData().get(0).getSrc();
-                mPresenter.saveToDb(data, imageName);
-                mPresenter.saveImage(src, imageName, Picasso.with(getContext()));
+                if(checkWriteExternalPermission()) {
+                    mPresenter.saveToDb(data, imageName);
+                    mPresenter.saveImage(src, imageName, Picasso.with(getContext()));
+                }else{
+                    mPresenter.saveToDb(data, data.getPagemap().getCseThumbnailData().get(0).getSrc());
+                }
             }
 
             @Override
@@ -132,6 +137,12 @@ public class ResultFragment extends Fragment implements Callback<Query>, ResultV
                                 Constants.UPDATE_ITEM_INTENT
                         )
                 );
+    }
+
+    private boolean checkWriteExternalPermission() {
+        String permission = "android.permission.WRITE_EXTERNAL_STORAGE";
+        int res = getContext().checkCallingOrSelfPermission(permission);
+        return (res == PackageManager.PERMISSION_GRANTED);
     }
 
     @Override

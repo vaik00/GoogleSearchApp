@@ -1,6 +1,7 @@
 package app.dev.googlesearchapp.view.fragment;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -93,10 +94,21 @@ public class FavouriteFragment extends Fragment implements FavouriteView, TaskLi
     public void openImageFragment(String path) {
         FragmentManager manager = getFragmentManager();
         FragmentTransaction transaction = manager.beginTransaction();
-        PhotoFragment fragment = PhotoFragment.newInstance(null, path);
+        PhotoFragment fragment;
+        if(checkWriteExternalPermission()) {
+            fragment = PhotoFragment.newInstance(null, path);
+        }else{
+            fragment = PhotoFragment.newInstance(path, null);
+        }
         transaction.replace(R.id.container, fragment, "photo");
         transaction.addToBackStack(null);
         transaction.commit();
+    }
+
+    private boolean checkWriteExternalPermission() {
+        String permission = "android.permission.WRITE_EXTERNAL_STORAGE";
+        int res = getContext().checkCallingOrSelfPermission(permission);
+        return (res == PackageManager.PERMISSION_GRANTED);
     }
 
     @Override
